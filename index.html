@@ -2,19 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trái tim yêu thương 💖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lea Ngọc</title>
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background: linear-gradient(to bottom, #ffe6f0, #fff);
+      font-family: Arial, sans-serif;
     }
-
     canvas {
       display: block;
     }
-
     .message {
       position: absolute;
       bottom: 10%;
@@ -26,20 +25,16 @@
       padding: 0 10px;
       box-sizing: border-box;
     }
-
-    @media (max-width: 600px) {
-      .message {
-        font-size: 1em;
-      }
-    }
   </style>
 </head>
 <audio id="bg-music" autoplay loop>
-    <source src="https://www.bensound.com/bensound-music/bensound-tenderness.mp3" type="audio/mp3">
+    <!-- <source src="https://www.bensound.com/bensound-music/bensound-tenderness.mp3" type="audio/mp3"> -->
+    <source src="audio/guitar_morning_tone.mp3" type="audio/mp3">
     Trình duyệt của bạn không hỗ trợ audio.
-  </audio>  
+  </audio>
 <body>
-  <div class="message">Tình yêu này được tạo nên từ hàng ngàn trái tim 💕</div>
+  <div class="message">Lea Ngọc 💕</div>
+  
   <button id="play-btn" style="
   position: absolute;
   top: 20px;
@@ -56,18 +51,23 @@
 ">
   🔈 Bật nhạc
 </button>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
   <script>
-    // Setup
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.z = 15;
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camera.position.z = 20;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Heart shape
+    // Heart shape for small hearts
     const heartShape = new THREE.Shape();
     heartShape.moveTo(0, 0);
     heartShape.bezierCurveTo(0, 0, -1.5, -1.5, -2, 0);
@@ -78,50 +78,106 @@
     const smallHeartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
     smallHeartGeometry.scale(0.05, 0.05, 0.05);
 
-    const smallHearts = [];
-
-    // Generate positions in heart shape using parametric equation
+    // Parametric function tạo hình trái tim 3D lớn (dạng 2D + z ngẫu nhiên)
     function heartFunction3D(t) {
-  const phi = t * Math.PI * 2;
-  const r = 1 - Math.sin(phi);
-  const x = 16 * Math.pow(Math.sin(phi), 3);
-  const y = 13 * Math.cos(phi) - 5 * Math.cos(2 * phi) - 2 * Math.cos(3 * phi) - Math.cos(4 * phi);
-  const z = (Math.random() - 0.5) * 2;
-  return new THREE.Vector3(x * 0.2, y * 0.2, z); // TĂNG KÍCH CỠ TRÁI TIM
-}
-
-    for (let i = 0; i < 400; i++) {
-      const t = Math.random();
-      const pos = heartFunction3D(t);
-      const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 80 });
-      const heart = new THREE.Mesh(smallHeartGeometry, material);
-      heart.position.copy(pos);
-      heart.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-      scene.add(heart);
-      smallHearts.push(heart);
+      const phi = t * Math.PI * 2;
+      const x = 16 * Math.pow(Math.sin(phi), 3);
+      const y =
+        13 * Math.cos(phi) -
+        5 * Math.cos(2 * phi) -
+        2 * Math.cos(3 * phi) -
+        Math.cos(4 * phi);
+      const z = (Math.random() - 0.5) * 2;
+      return new THREE.Vector3(x * 0.3, y * 0.3, z);
     }
 
-    // Lights
-    const light = new THREE.PointLight(0xffffff, 1.5);
-    light.position.set(10, 10, 10);
-    scene.add(light);
+    // Tạo trái tim nhỏ với vị trí bắt đầu random ngoài màn hình
+    class SmallHeart {
+      constructor(targetPos) {
+        const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 80 });
+        this.mesh = new THREE.Mesh(smallHeartGeometry, material);
+
+        // Vị trí đích
+        this.targetPos = targetPos.clone();
+
+        // Vị trí bắt đầu: random ngoài khung nhìn (tạo vòng tròn lớn quanh camera)
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 30 + Math.random() * 20;
+        this.startPos = new THREE.Vector3(
+          Math.cos(angle) * radius,
+          (Math.random() - 0.5) * 40,
+          Math.sin(angle) * radius
+        );
+
+        this.mesh.position.copy(this.startPos);
+
+        // Vận tốc bay vào
+        this.speed = 0.02 + Math.random() * 0.01;
+
+        scene.add(this.mesh);
+
+        // Trạng thái đã đến nơi chưa
+        this.arrived = false;
+      }
+
+      update() {
+        if (!this.arrived) {
+          // Vector hướng đi từ vị trí hiện tại đến vị trí đích
+          const direction = new THREE.Vector3()
+            .subVectors(this.targetPos, this.mesh.position)
+            .normalize();
+
+          // Dịch chuyển theo hướng với tốc độ
+          this.mesh.position.addScaledVector(direction, this.speed);
+
+          // Nếu gần đến đích, dừng lại
+          if (this.mesh.position.distanceTo(this.targetPos) < 0.1) {
+            this.mesh.position.copy(this.targetPos);
+            this.arrived = true;
+          }
+        } else {
+          // Đảo chiều xoay nhẹ khi đã đến
+          this.mesh.rotation.x += 0.01;
+          this.mesh.rotation.y += 0.01;
+          // Nhịp lắc nhẹ
+          this.mesh.position.y += Math.sin(Date.now() * 0.002 + this.mesh.position.x) * 0.002;
+        }
+      }
+    }
+
+    // Tạo danh sách trái tim nhỏ
+    const smallHearts = [];
+    const totalHearts = 300;
+
+    for (let i = 0; i < totalHearts; i++) {
+      const t = i / totalHearts;
+      const pos = heartFunction3D(t);
+      smallHearts.push(new SmallHeart(pos));
+    }
+
+    // Ánh sáng
+    const pointLight = new THREE.PointLight(0xffffff, 1.5);
+    pointLight.position.set(20, 20, 20);
+    scene.add(pointLight);
+
     scene.add(new THREE.AmbientLight(0xffc0cb, 0.5));
 
     // Animate
     function animate() {
       requestAnimationFrame(animate);
-      smallHearts.forEach((h, i) => {
-        h.rotation.y += 0.01;
-        h.position.y += Math.sin(Date.now() * 0.001 + i) * 0.002;
-      });
-      scene.rotation.y += 0.003;
+
+      smallHearts.forEach((heart) => heart.update());
+
+      // Xoay toàn bộ scene nhẹ
+      scene.rotation.y += 0.002;
+
       renderer.render(scene, camera);
     }
 
     animate();
 
-    // Resize
-    window.addEventListener("resize", () => {
+    // Responsive
+    window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -132,12 +188,12 @@
 
   btn.addEventListener('click', () => {
     music.play();
-    btn.style.display = 'none'; // ẩn nút sau khi bật
+    // btn.style.display = 'none'; // ẩn nút sau khi bật
   });
 
   // Ẩn nút nếu nhạc đã phát tự động được
   music.onplay = () => {
-    btn.style.display = 'none';
+    // btn.style.display = 'none';
   };
   </script>
 </body>
