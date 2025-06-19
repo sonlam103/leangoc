@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trái tim yêu thương 💖</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #ffe6f0, #fff);
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .message {
+      position: absolute;
+      bottom: 10%;
+      width: 100%;
+      text-align: center;
+      font-size: 1.4em;
+      color: #d63384;
+      font-weight: bold;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    @media (max-width: 600px) {
+      .message {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<audio id="bg-music" autoplay loop>
+    <source src="https://www.bensound.com/bensound-music/bensound-tenderness.mp3" type="audio/mp3">
+    Trình duyệt của bạn không hỗ trợ audio.
+  </audio>  
+<body>
+  <div class="message">Tình yêu này được tạo nên từ hàng ngàn trái tim 💕</div>
+  <button id="play-btn" style="
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  font-size: 14px;
+  background: #ff69b4;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 10;
+">
+  🔈 Bật nhạc
+</button>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script>
+    // Setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.z = 15;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Heart shape
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(0, 0);
+    heartShape.bezierCurveTo(0, 0, -1.5, -1.5, -2, 0);
+    heartShape.bezierCurveTo(-2.5, 2, 0, 3, 0, 4);
+    heartShape.bezierCurveTo(0, 3, 2.5, 2, 2, 0);
+    heartShape.bezierCurveTo(1.5, -1.5, 0, 0, 0, 0);
+    const extrudeSettings = { depth: 0.1, bevelEnabled: false };
+    const smallHeartGeometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+    smallHeartGeometry.scale(0.05, 0.05, 0.05);
+
+    const smallHearts = [];
+
+    // Generate positions in heart shape using parametric equation
+    function heartFunction3D(t) {
+  const phi = t * Math.PI * 2;
+  const r = 1 - Math.sin(phi);
+  const x = 16 * Math.pow(Math.sin(phi), 3);
+  const y = 13 * Math.cos(phi) - 5 * Math.cos(2 * phi) - 2 * Math.cos(3 * phi) - Math.cos(4 * phi);
+  const z = (Math.random() - 0.5) * 2;
+  return new THREE.Vector3(x * 0.2, y * 0.2, z); // TĂNG KÍCH CỠ TRÁI TIM
+}
+
+    for (let i = 0; i < 400; i++) {
+      const t = Math.random();
+      const pos = heartFunction3D(t);
+      const material = new THREE.MeshPhongMaterial({ color: 0xff69b4, shininess: 80 });
+      const heart = new THREE.Mesh(smallHeartGeometry, material);
+      heart.position.copy(pos);
+      heart.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      scene.add(heart);
+      smallHearts.push(heart);
+    }
+
+    // Lights
+    const light = new THREE.PointLight(0xffffff, 1.5);
+    light.position.set(10, 10, 10);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffc0cb, 0.5));
+
+    // Animate
+    function animate() {
+      requestAnimationFrame(animate);
+      smallHearts.forEach((h, i) => {
+        h.rotation.y += 0.01;
+        h.position.y += Math.sin(Date.now() * 0.001 + i) * 0.002;
+      });
+      scene.rotation.y += 0.003;
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const music = document.getElementById('bg-music');
+  const btn = document.getElementById('play-btn');
+
+  btn.addEventListener('click', () => {
+    music.play();
+    btn.style.display = 'none'; // ẩn nút sau khi bật
+  });
+
+  // Ẩn nút nếu nhạc đã phát tự động được
+  music.onplay = () => {
+    btn.style.display = 'none';
+  };
+  </script>
+</body>
+</html>
